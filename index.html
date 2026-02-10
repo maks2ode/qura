@@ -307,8 +307,9 @@
     const db = getFirestore(app);
 
     const params = new URLSearchParams(window.location.search);
-    const myEmail = params.get('me');
-    const partnerEmail = params.get('partner');
+    const partnerId = params.get('partner'); // тепер partner = User ID
+    const myEmail = "admin@test.com"; // тимчасово, щоб чат не зламався
+
     const partnerId = params.get('pid');
     let userCoins = parseInt(params.get('coins')) || 0;
 
@@ -416,3 +417,4 @@
 </script>
 </body>
 </html>
+
