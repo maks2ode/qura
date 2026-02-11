@@ -286,7 +286,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, limit, serverTimestamp } 
+    import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, limit, serverTimestamp, doc, getDoc }  
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const BUY_LINK_1 = "https://quradating.softr.app/buy-1-coin"; 
@@ -307,16 +307,36 @@
     const db = getFirestore(app);
 
     const params = new URLSearchParams(window.location.search);
-    const myEmail = params.get('me');
-    const partnerEmail = params.get('partner');
+    const partnerId = params.get('partner'); // сюди прийде User ID
+const myEmail = params.get('me') || "admin@test.com"; // тимчасово
     const partnerId = params.get('pid');
     let userCoins = parseInt(params.get('coins')) || 0;
 
     const chatTitle = document.getElementById('chat-title');
-    const avatarChar = document.getElementById('avatar-char');
+    const avatarChar = document.getElementById('avatar-char'); async function loadPartner() {
+  if (!partnerId) return;
+
+  const ref = doc(db, "users", partnerId);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    chatTitle.innerText = "No user: " + partnerId;
+    avatarChar.innerText = "?";
+    return;
+  }
+
+  const u = snap.data();
+  chatTitle.innerText = u.name || ("User " + partnerId);
+  avatarChar.innerText = (u.name || "?").trim().charAt(0).toUpperCase();
+}
+loadPartner();
+
     const msgBox = document.getElementById('messages');
 
-    if (myEmail && partnerEmail) {
+    if (myEmail && partnerId) {
+  initChat();
+}
+ {
         const name = partnerEmail.split('@')[0];
         chatTitle.innerText = name.charAt(0).toUpperCase() + name.slice(1);
         avatarChar.innerText = name.charAt(0).toUpperCase();
@@ -374,7 +394,8 @@
         const text = input.value.trim();
         if (!text) return;
         input.value = '';
-        await addDoc(collection(db, "messages"), { text: text, sender: myEmail, participants: [myEmail, partnerEmail], createdAt: serverTimestamp() });
+        await addDoc(collection(db, "messages"), { text: text, sender: myEmail, participants: [myEmail, partnerId]
+, createdAt: serverTimestamp() });
     }
 
     function handleFileUpload(e) {
@@ -400,7 +421,8 @@
         };
     }
 
-    async function pushToFirebase(data) { try { await addDoc(collection(db, "messages"), { ...data, sender: myEmail, participants: [myEmail, partnerEmail], createdAt: serverTimestamp() }); } catch (e) { document.getElementById('loader').style.display = 'none'; alert("Помилка: " + e.message); } }
+    async function pushToFirebase(data) { try { await addDoc(collection(db, "messages"), { ...data, sender: myEmail, participants: [myEmail, partnerId]
+, createdAt: serverTimestamp() }); } catch (e) { document.getElementById('loader').style.display = 'none'; alert("Помилка: " + e.message); } }
 
     window.runAISimulation = (type) => {
         document.getElementById('loader').style.display = 'block'; document.getElementById('loader-txt').innerText = "AI Аналізує...";
@@ -416,3 +438,4 @@
 </script>
 </body>
 </html>
+
