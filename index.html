@@ -1,418 +1,385 @@
+
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>Qura Chat</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #000000;
-            --header-bg: rgba(18, 18, 18, 0.98);
-            --input-bg: #1a1a1a;
-            --brand-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            --coin-color: #f59e0b;
-            --text-primary: #ffffff;
-            --text-secondary: #a1a1aa;
-            --app-max-width: 600px; 
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+  <title>Qura Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#000;
+      --panel: rgba(18,18,18,0.98);
+      --input:#1a1a1a;
+      --border:#222;
+      --muted:#a1a1aa;
+      --grad: linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);
+      --max:600px;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{
+      margin:0;background:#050505;font-family:'Plus Jakarta Sans',sans-serif;color:#fff;
+      height:100dvh;overflow:hidden;display:flex;flex-direction:column;
+    }
+    #app{width:100%;height:100%;margin:0 auto;background:var(--bg);position:relative;display:flex;flex-direction:column;}
+    @media(min-width:768px){#app{max-width:var(--max);border-left:1px solid var(--border);border-right:1px solid var(--border);}}
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    /* header */
+    #header{
+      position:absolute;top:0;left:0;right:0;z-index:50;
+      padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px);
+    }
+    .hl{display:flex;align-items:center;gap:10px;cursor:pointer;flex:1;overflow:hidden;}
+    .back{color:var(--muted);display:flex;align-items:center;padding:5px;}
+    .avatar{
+      width:34px;height:34px;border-radius:50%;
+      background:linear-gradient(45deg,#ff00cc,#333399);
+      display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;overflow:hidden;
+    }
+    #avatarPhoto{width:34px;height:34px;border-radius:50%;object-fit:cover;display:none;flex-shrink:0;}
+    .ui{display:flex;flex-direction:column;overflow:hidden}
+    #title{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sub{font-size:11px;color:#6366f1}
+    .ha{display:flex;gap:6px}
+    .hb{width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,0.05);color:var(--muted);cursor:pointer}
 
-        body {
-            margin: 0; background: #050505; font-family: 'Plus Jakarta Sans', sans-serif;
-            color: var(--text-primary); display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
-        }
+    /* messages */
+    #msgs{
+      flex:1;overflow-y:auto;scroll-behavior:smooth;
+      padding:15px;padding-top:70px;padding-bottom:78px;
+      display:flex;flex-direction:column;gap:10px;
+    }
+    .row{display:flex;width:100%}
+    .row.mine{justify-content:flex-end}
+    .row.theirs{justify-content:flex-start}
+    .bubble{
+      max-width:85%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.4;
+      background:#27272a;color:#fff;
+    }
+    .mine .bubble{background:var(--grad);border-bottom-right-radius:2px}
+    .theirs .bubble{border-bottom-left-radius:2px}
+    .t{display:block;font-size:10px;opacity:.7;text-align:right;margin-top:6px}
 
-        #app-container {
-            width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg-color);
-            position: relative; margin: 0 auto;
-        }
+    /* input */
+    #input{
+      position:absolute;left:0;right:0;bottom:0;z-index:50;
+      padding:8px 10px;padding-bottom:max(8px, env(safe-area-inset-bottom));
+      background:var(--panel);border-top:1px solid var(--border);
+      display:flex;align-items:center;gap:8px;
+    }
+    .wrap{
+      flex:1;min-width:0;display:flex;align-items:center;
+      background:var(--input);border:1px solid #333;border-radius:24px;padding:8px 12px;min-height:40px;
+    }
+    #txt{flex:1;min-width:0;background:transparent;border:none;outline:none;color:#fff;font-size:16px}
+    #send{
+      width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;
+      background:var(--grad);display:flex;align-items:center;justify-content:center;
+    }
 
-        @media (min-width: 768px) {
-            #app-container { max-width: var(--app-max-width); border-left: 1px solid #222; border-right: 1px solid #222; }
-        }
+    /* login screen */
+    #loginOverlay{
+      position:fixed;inset:0;z-index:999;display:none;
+      background:rgba(0,0,0,.86);backdrop-filter:blur(8px);
+      align-items:center;justify-content:center;padding:20px;
+    }
+    .card{
+      width:100%;max-width:420px;background:#121212;border:1px solid #333;border-radius:20px;
+      padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.6);
+    }
+    .h1{font-size:18px;font-weight:800;margin:0 0 6px 0}
+    .p{margin:0 0 16px 0;color:#aaa;font-size:13px;line-height:1.4}
+    .field{
+      width:100%;background:#1a1a1a;border:1px solid #333;border-radius:12px;
+      padding:12px 12px;color:#fff;font-size:15px;outline:none;
+    }
+    .btn{
+      margin-top:12px;width:100%;border:none;border-radius:14px;
+      padding:14px 12px;font-weight:800;cursor:pointer;background:var(--grad);color:#fff;font-size:15px;
+    }
+    .mini{
+      margin-top:10px;color:#777;font-size:12px;line-height:1.4;
+    }
+    .link{
+      color:#8b5cf6;text-decoration:underline;cursor:pointer;
+    }
 
-        /* --- HEADER --- */
-        #header {
-            padding: 10px 12px; background: var(--header-bg); border-bottom: 1px solid #222;
-            display: flex; align-items: center; justify-content: space-between;
-            z-index: 50; position: absolute; top: 0; left: 0; right: 0; backdrop-filter: blur(10px);
-        }
-        .header-left { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; overflow: hidden; }
-        .back-btn { color: var(--text-secondary); display: flex; align-items: center; padding: 5px; }
-        .avatar-circle {
-            width: 34px; height: 34px; background: linear-gradient(45deg, #ff00cc, #333399);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;
-        }
-        .user-info { display: flex; flex-direction: column; overflow: hidden; }
-        .user-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .user-status { font-size: 11px; color: #6366f1; }
-
-        .header-actions { display: flex; align-items: center; gap: 5px; }
-        .header-btn {
-            width: 34px; height: 34px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer;
-            background: rgba(255,255,255,0.05); color: var(--text-secondary); transition: 0.2s;
-        }
-        .header-btn:active { transform: scale(0.9); }
-        
-        #profile-ai-btn { color: #8b5cf6; position: relative; }
-        @keyframes pulse-purple {
-            0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
-            70% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
-        }
-        .pulse-purple { animation: pulse-purple 2s infinite; }
-
-        /* --- CHAT --- */
-        #messages {
-            flex: 1; overflow-y: auto; padding: 15px; padding-top: 70px; padding-bottom: 75px;
-            display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;
-        }
-        .msg-row { display: flex; width: 100%; }
-        .msg { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; }
-        .mine { justify-content: flex-end; }
-        .mine .msg { background: var(--brand-gradient); color: white; border-bottom-right-radius: 2px; }
-        .theirs { justify-content: flex-start; }
-        .theirs .msg { background: #27272a; color: white; border-bottom-left-radius: 2px; }
-        .msg img { max-width: 100%; border-radius: 12px; margin-top: 5px; }
-
-        /* --- INPUT --- */
-        #input-area {
-            padding: 8px 10px; padding-bottom: max(8px, env(safe-area-inset-bottom));
-            background: var(--header-bg); border-top: 1px solid #222;
-            display: flex; align-items: center; gap: 8px; position: absolute; bottom: 0; left: 0; right: 0; z-index: 50;
-        }
-        .input-wrapper {
-            flex: 1; background: var(--input-bg); border-radius: 24px; padding: 8px 12px;
-            display: flex; align-items: center; border: 1px solid #333; min-height: 40px; min-width: 0;
-        }
-        input[type="text"] { flex: 1; background: transparent; border: none; color: white; font-size: 16px; outline: none; min-width: 0; }
-        .icon-btn { 
-            background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 6px; 
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        button#send-btn {
-            background: var(--brand-gradient); width: 38px; height: 38px; border-radius: 50%; border: none;
-            display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
-        }
-
-        #chat-ai-btn { color: #f59e0b; }
-        @keyframes pulse-gold {
-            0% { filter: drop-shadow(0 0 0px rgba(245, 158, 11, 0)); transform: scale(1); }
-            50% { filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6)); transform: scale(1.05); }
-            100% { filter: drop-shadow(0 0 0px rgba(245, 158, 11, 0)); transform: scale(1); }
-        }
-        .pulse-gold { animation: pulse-gold 3s infinite ease-in-out; }
-
-        /* --- 3D COIN ANIMATION --- */
-        .coin-3d-wrapper {
-            width: 20px; height: 20px; perspective: 1000px; display: inline-block; margin-left: 8px;
-        }
-        .coin-3d {
-            width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
-            animation: spin-coin 4s linear infinite;
-        }
-        .coin-face {
-            position: absolute; width: 100%; height: 100%; border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
-            border: 2px solid #daa520; display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: bold; color: #5c4003; box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-        }
-        .coin-back { transform: rotateY(180deg); }
-
-        @keyframes spin-coin {
-            0% { transform: rotateY(0deg); }
-            100% { transform: rotateY(360deg); }
-        }
-
-        /* --- PROMO MODALS --- */
-        .overlay {
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200;
-            backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 20px;
-        }
-        .promo-card {
-            width: 100%; max-width: 380px; background: #121212; border-radius: 24px; border: 1px solid #333;
-            padding: 30px 25px; display: flex; flex-direction: column; align-items: center; text-align: center;
-            position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.6); animation: zoomIn 0.2s;
-        }
-        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        .promo-icon { font-size: 40px; margin-bottom: 15px; }
-        .promo-title { font-size: 20px; font-weight: 800; color: white; margin-bottom: 10px; }
-        .promo-text { color: #aaa; font-size: 14px; line-height: 1.5; margin-bottom: 25px; }
-        
-        .promo-bullets { text-align: left; width: 100%; margin-bottom: 25px; background: #1a1a1a; padding: 15px; border-radius: 12px; }
-        .bullet { display: flex; gap: 10px; font-size: 13px; color: #ccc; margin-bottom: 8px; }
-        .bullet:last-child { margin-bottom: 0; }
-
-        .action-button {
-            width: 100%; padding: 16px; border-radius: 14px; border: none; font-weight: 700; font-size: 15px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            transition: transform 0.1s;
-        }
-        .action-button:active { transform: scale(0.95); }
-        
-        .btn-gold { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: black; }
-        .btn-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; }
-
-        .close-promo { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #555; font-size: 24px; cursor: pointer; }
-
-        /* --- SHOP MODAL --- */
-        .shop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; width: 100%; margin: 20px 0; }
-        .coin-card {
-            background: #1e1e1e; border: 1px solid #333; border-radius: 16px; padding: 15px 5px;
-            text-align: center; cursor: pointer; position: relative; overflow: hidden;
-        }
-        .card-popular { border: 1px solid #f59e0b; background: linear-gradient(180deg, #2a1f00 0%, #1e1e1e 100%); }
-        .badge { position: absolute; top: 0; left: 0; width: 100%; background: #f59e0b; color: black; font-size: 8px; font-weight: 800; padding: 2px 0; }
-        .svg-coin { width: 24px; height: 24px; margin-bottom: 5px; fill: #f59e0b; }
-        .svg-diamond { width: 24px; height: 24px; margin-bottom: 5px; fill: #0ea5e9; }
-        .cc-amount { font-size: 13px; font-weight: 700; color: white; display: block; }
-        .cc-price { font-size: 11px; color: #aaa; margin-top: 4px; display: block; }
-
-        /* --- OTHER --- */
-        #ai-result-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .ai-res-card { background: #151515; width: 100%; max-width: 500px; border-radius: 20px; padding: 25px; border: 1px solid #333; max-height: 80vh; overflow-y: auto; color: #eee; }
-        #loader { display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #111; padding: 20px; border-radius: 15px; z-index: 500; text-align: center; border: 1px solid #333; width: 150px; }
-        .spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.2); border-radius: 50%; border-top-color: #f59e0b; animation: spin 1s infinite linear; margin: 0 auto 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .report-card { background: #1a1a1a; width: 100%; max-width: 350px; border-radius: 20px; padding: 20px; border: 1px solid #333; }
-        .report-option { padding: 15px; border-bottom: 1px solid #333; cursor: pointer; color: #ddd; display: flex; justify-content: space-between; }
-        #img-viewer { display: none; position: fixed; inset: 0; background: black; z-index: 600; align-items: center; justify-content: center; }
-        #img-viewer img { max-width: 100%; max-height: 100%; }
-        #close-viewer { position: absolute; top: 20px; right: 20px; color: white; background: rgba(255,255,255,0.2); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
-    </style>
+    /* tiny toast */
+    #toast{
+      position:fixed;left:50%;bottom:95px;transform:translateX(-50%);
+      background:#151515;border:1px solid #333;color:#ddd;
+      padding:10px 12px;border-radius:12px;z-index:1000;display:none;font-size:13px;
+      max-width:92vw;
+    }
+  </style>
 </head>
 <body>
 
-<div id="app-container">
-    <div id="header">
-        <div class="header-left" id="profile-link">
-            <div class="back-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
-            <div class="avatar-circle" id="avatar-char"></div>
-            <div class="user-info"><div class="user-name" id="chat-title">...</div><div class="user-status">Переглянути профіль</div></div>
-        </div>
-        <div class="header-actions">
-            <button class="header-btn pulse-purple" id="profile-ai-btn" onclick="openPromo('profile')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M20 12h2"/><path d="M2 12h2"/></svg>
-            </button>
-            <button class="header-btn" onclick="openReportMenu()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            </button>
-        </div>
-    </div>
-    
-    <div id="messages"></div>
+<div id="app">
+  <div id="header">
+    <div class="hl" id="profileLink">
+      <div class="back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </div>
 
-    <div id="input-area">
-        <button class="icon-btn" id="attach-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-        <button class="icon-btn pulse-gold" id="chat-ai-btn" onclick="openPromo('chat')">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        </button>
-        <input type="file" id="file-input" accept="image/*" style="display: none;">
-        <div class="input-wrapper"><input type="text" id="msg-input" placeholder="Повідомлення..." autocomplete="off"></div>
-        <button id="send-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg></button>
+      <img id="avatarPhoto" alt="avatar">
+      <div class="avatar" id="avatarChar">?</div>
+
+      <div class="ui">
+        <div id="title">...</div>
+        <div class="sub">Переглянути профіль</div>
+      </div>
     </div>
+
+    <div class="ha">
+      <button class="hb" id="whoBtn" title="Хто я?">i</button>
+    </div>
+  </div>
+
+  <div id="msgs"></div>
+
+  <div id="input">
+    <div class="wrap">
+      <input id="txt" type="text" placeholder="Повідомлення..." autocomplete="off">
+    </div>
+    <button id="send" title="Send">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+      </svg>
+    </button>
+  </div>
 </div>
 
-<div id="promo-profile" class="overlay">
-    <div class="promo-card">
-        <button class="close-promo" onclick="closeOverlays()">&times;</button>
-        <div class="promo-icon">🧠</div>
-        <div class="promo-title">Психологічний Портрет</div>
-        <div class="promo-text">ШІ проаналізує кожну деталь профілю та фото, щоб розкрити характер людини.</div>
-        <div class="promo-bullets">
-            <div class="bullet">✅ Приховані риси характеру</div>
-            <div class="bullet">✅ Теми, які її точно зачеплять</div>
-            <div class="bullet">🚩 "Червоні прапорці" (Red Flags)</div>
-        </div>
-        <button class="action-button btn-purple" onclick="useService('profile', 2)">
-            Аналізувати за 2 Qura Coins
-            <div class="coin-3d-wrapper"><div class="coin-3d"><div class="coin-face">Q</div><div class="coin-face coin-back">Q</div></div></div>
-        </button>
+<div id="loginOverlay">
+  <div class="card">
+    <div class="h1">Вхід у чат</div>
+    <div class="p">Введи свій email (на старті це заміна “логіну”). Ми збережемо його, щоб не вводити щоразу.</div>
+    <input class="field" id="loginEmail" type="email" placeholder="Напр. admin@test.com">
+    <button class="btn" id="loginBtn">Продовжити</button>
+    <div class="mini">
+      Потім можна зробити нормальний вхід через Google. Зараз головне — щоб чат працював стабільно.
+      <br><span class="link" id="resetMe">Скинути збережений email</span>
     </div>
+  </div>
 </div>
 
-<div id="promo-chat" class="overlay">
-    <div class="promo-card">
-        <button class="close-promo" onclick="closeOverlays()">&times;</button>
-        <div class="promo-icon">✨</div>
-        <div class="promo-title">Ідеальна Відповідь</div>
-        <div class="promo-text">Не знаєш, що написати? Qura AI проаналізує діалог і згенерує відповідь, яка гарантовано спрацює.</div>
-        <div class="promo-bullets">
-            <div class="bullet">🚀 Підвищує шанс на побачення</div>
-            <div class="bullet">💡 Розуміє підтекст повідомлень</div>
-            <div class="bullet">✍️ Пише за тебе</div>
-        </div>
-        <button class="action-button btn-gold" onclick="useService('chat', 1)">
-            Отримати пораду за 1 Qura Coin
-            <div class="coin-3d-wrapper"><div class="coin-3d"><div class="coin-face">Q</div><div class="coin-face coin-back">Q</div></div></div>
-        </button>
-    </div>
-</div>
-
-<div id="shop-overlay" class="overlay">
-    <div class="promo-card">
-        <button class="close-promo" onclick="closeOverlays()">&times;</button>
-        <div class="promo-title">Поповнити баланс</div>
-        <div class="promo-text" style="margin-bottom:10px;">У вас: <b style="color:#f59e0b" id="shop-balance">0</b> Coins</div>
-        <div class="shop-grid">
-            <div class="coin-card" onclick="buyCoins(1)">
-                <svg class="svg-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M12 6a4 4 0 0 1 0 12" stroke="black" stroke-width="2" fill="none"/></svg>
-                <span class="cc-amount">1 Coin</span>
-                <span class="cc-price">65 грн</span>
-            </div>
-            <div class="coin-card card-popular" onclick="buyCoins(5)">
-                <div class="badge">ХІТ</div>
-                <svg class="svg-coin" viewBox="0 0 24 24"><path d="M4 18h16M4 14h16M4 10h16M4 6h16" stroke="#f59e0b" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="#f59e0b"/></svg>
-                <span class="cc-amount">5 Coins</span>
-                <span class="cc-price">270 грн</span>
-            </div>
-            <div class="coin-card" onclick="buyCoins(10)">
-                <svg class="svg-diamond" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>
-                <span class="cc-amount">10 Coins</span>
-                <span class="cc-price">500 грн</span>
-            </div>
-        </div>
-        <div style="font-size:11px; color:#666;">Безпечна оплата через Stripe / Apple Pay</div>
-    </div>
-</div>
-
-<div id="report-overlay" class="overlay"><div class="report-card"><div style="font-size:18px; font-weight:bold; color:white; margin-bottom:15px; text-align:center;">Поскаржитися</div><div class="report-option" onclick="submitReport('spam')"><span>Спам / Реклама</span><span>🚩</span></div><div class="report-option" onclick="submitReport('fake')"><span>Фейковий профіль</span><span>🎭</span></div><div class="report-option" onclick="submitReport('insult')"><span>Образи / Грубість</span><span>🤬</span></div><button style="width:100%; background:#333; color:white; border:none; padding:12px; border-radius:10px; margin-top:15px; cursor:pointer;" onclick="closeOverlays()">Скасувати</button></div></div>
-<div id="ai-result-modal"><div class="ai-res-card"><button id="close-ai" onclick="document.getElementById('ai-result-modal').style.display='none'">&times;</button><div style="font-size:18px; font-weight:bold; color:#fbbf24; margin-bottom:15px;">✨ Результат аналізу</div><div id="ai-text" style="line-height:1.6; font-size:14px; color:#e5e5e5;"></div></div></div>
-<div id="loader"><div class="spinner"></div><div id="loader-txt">Обробка...</div></div>
-<div id="img-viewer" onclick="this.style.display='none'"><div id="close-viewer">&times;</div><img id="viewer-img" src=""></div>
+<div id="toast"></div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, limit, serverTimestamp } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, limit, serverTimestamp,
+    doc, getDoc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const BUY_LINK_1 = "https://quradating.softr.app/buy-1-coin"; 
-    const BUY_LINK_5 = "https://quradating.softr.app/buy-5-coins";
-    const BUY_LINK_10 = "https://quradating.softr.app/buy-10-coins";
-    const SOFTR_PROFILE_URL = "https://quradating.softr.app/user-profile"; 
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQNxVaRBgyiM0oJJjzDJ5MJi1WBVPlsdI",
+    authDomain: "quradating777.firebaseapp.com",
+    projectId: "quradating777",
+    storageBucket: "quradating777.firebasestorage.app",
+    messagingSenderId: "723638199684",
+    appId: "1:723638199684:web:b00ea1895fd5b7ee63e9d1"
+  };
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBQNxVaRBgyiM0oJJjzDJ5MJi1WBVPlsdI",
-        authDomain: "quradating777.firebaseapp.com",
-        projectId: "quradating777",
-        storageBucket: "quradating777.firebasestorage.app",
-        messagingSenderId: "723638199684",
-        appId: "1:723638199684:web:b00ea1895fd5b7ee63e9d1"
-    };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  // -------- URL params from Softr button ----------
+  const params = new URLSearchParams(window.location.search);
 
-    const params = new URLSearchParams(window.location.search);
-    const myEmail = params.get('me');
-    const partnerEmail = params.get('partner');
-    const partnerId = params.get('pid');
-    let userCoins = parseInt(params.get('coins')) || 0;
+  // partnerId MUST come from Softr: ?partnerId=4
+  const partnerId = (params.get("partnerId") || "").trim();
+  // partnerEmail MUST come from Softr: ?partnerEmail=user@test.com
+  const partnerEmail = (params.get("partnerEmail") || "").trim();
 
-    const chatTitle = document.getElementById('chat-title');
-    const avatarChar = document.getElementById('avatar-char');
-    const msgBox = document.getElementById('messages');
+  // myEmail comes from localStorage OR from URL ?me=...
+  const storedMe = (localStorage.getItem("qura_me_email") || "").trim();
+  const urlMe = (params.get("me") || "").trim();
+  let myEmail = urlMe || storedMe;
 
-    if (myEmail && partnerEmail) {
-        const name = partnerEmail.split('@')[0];
-        chatTitle.innerText = name.charAt(0).toUpperCase() + name.slice(1);
-        avatarChar.innerText = name.charAt(0).toUpperCase();
-        initChat();
+  // UI
+  const titleEl = document.getElementById("title");
+  const avatarChar = document.getElementById("avatarChar");
+  const avatarPhoto = document.getElementById("avatarPhoto");
+  const msgs = document.getElementById("msgs");
+  const input = document.getElementById("txt");
+  const sendBtn = document.getElementById("send");
+  const loginOverlay = document.getElementById("loginOverlay");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginBtn = document.getElementById("loginBtn");
+  const toast = document.getElementById("toast");
+
+  // -------- helpers ----------
+  function showToast(text){
+    toast.textContent = text;
+    toast.style.display = "block";
+    clearTimeout(window.__toastT);
+    window.__toastT = setTimeout(()=>toast.style.display="none", 2600);
+  }
+
+  function looksUnsubstituted(v){
+    return v.includes("{") || v.includes("}");
+  }
+
+  function esc(s){
+    return (s||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+
+  function requirePartnerParams(){
+    if(!partnerId || !partnerEmail || looksUnsubstituted(partnerId) || looksUnsubstituted(partnerEmail)){
+      alert(
+        "Проблема з URL з Softr (параметри не підставились).\n\n" +
+        "Потрібно: ?partnerId=4&partnerEmail=user@test.com\n\n" +
+        "Зараз: " + window.location.href
+      );
+      titleEl.textContent = "Немає даних";
+      avatarChar.textContent = "!";
+      throw new Error("Bad partner params");
     }
-    
-    document.getElementById('profile-link').onclick = () => { if (partnerId) window.location.href = `${SOFTR_PROFILE_URL}?recordId=${partnerId}`; };
-    window.openPromo = (type) => { type === 'profile' ? document.getElementById('promo-profile').style.display = 'flex' : document.getElementById('promo-chat').style.display = 'flex'; };
-    window.closeOverlays = () => { document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none'); };
-    window.openReportMenu = () => document.getElementById('report-overlay').style.display = 'flex';
+  }
 
-    window.useService = (type, cost) => {
-        closeOverlays();
-        if (userCoins >= cost) {
-            userCoins -= cost;
-            runAISimulation(type);
-        } else {
-            document.getElementById('shop-balance').innerText = userCoins;
-            document.getElementById('shop-overlay').style.display = 'flex';
-        }
-    };
-
-    window.buyCoins = (amount) => { window.open(amount === 1 ? BUY_LINK_1 : amount === 5 ? BUY_LINK_5 : BUY_LINK_10, '_blank'); };
-    window.submitReport = () => { closeOverlays(); alert("Скаргу відправлено."); };
-
-    function initChat() {
-        const q = query(collection(db, "messages"), where("participants", "array-contains", myEmail), orderBy("createdAt", "asc"), limit(50));
-        onSnapshot(q, (snapshot) => {
-            msgBox.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.participants.includes(partnerEmail)) renderMessage(data);
-            });
-            setTimeout(() => msgBox.scrollTop = msgBox.scrollHeight, 100);
-        });
-
-        document.getElementById('send-btn').onclick = sendMessage;
-        document.getElementById('msg-input').onkeypress = (e) => { if(e.key === 'Enter') sendMessage(); };
-        document.getElementById('attach-btn').onclick = () => document.getElementById('file-input').click();
-        document.getElementById('file-input').onchange = handleFileUpload;
+  function ensureMyEmail(){
+    if(!myEmail || looksUnsubstituted(myEmail)){
+      loginOverlay.style.display = "flex";
+      loginEmail.value = "";
+      loginEmail.focus();
+      return false;
     }
+    return true;
+  }
 
-    function renderMessage(data) {
-        const row = document.createElement('div');
-        row.className = `msg-row ${data.sender === myEmail ? 'mine' : 'theirs'}`;
-        let content = data.imageUrl ? `<img src="${data.imageUrl}" onclick="event.stopPropagation(); window.viewImage('${data.imageUrl}')">` : '';
-        if (data.text) content += data.imageUrl ? `<div style="margin-top:6px">${data.text}</div>` : data.text;
-        const time = data.createdAt ? new Date(data.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-        row.innerHTML = `<div class="msg">${content}<span style="display:block; font-size:10px; opacity:0.7; text-align:right; margin-top:5px;">${time}</span></div>`;
-        msgBox.appendChild(row);
-    }
+  // -------- Partner header (name/photo) ----------
+  async function loadPartner(){
+    try{
+      const ref = doc(db, "users", String(partnerId));
+      const snap = await getDoc(ref);
 
-    async function sendMessage() {
-        const input = document.getElementById('msg-input');
-        const text = input.value.trim();
-        if (!text) return;
-        input.value = '';
-        await addDoc(collection(db, "messages"), { text: text, sender: myEmail, participants: [myEmail, partnerEmail], createdAt: serverTimestamp() });
-    }
+      if(!snap.exists()){
+        titleEl.textContent = "User " + partnerId;
+        avatarChar.textContent = String(partnerId)[0]?.toUpperCase() || "?";
+        return;
+      }
 
-    function handleFileUpload(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        document.getElementById('loader').style.display = 'block'; document.getElementById('loader-txt').innerText = "Стискаємо...";
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 600; let width = img.width; let height = img.height;
-                if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                canvas.width = width; canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.5); 
-                pushToFirebase({ text: '', imageUrl: dataUrl });
-                e.target.value = ''; document.getElementById('loader').style.display = 'none';
-            }
+      const u = snap.data() || {};
+      const displayName = (u.name || ("User " + partnerId)).trim();
+      titleEl.textContent = displayName;
+      avatarChar.textContent = displayName.charAt(0).toUpperCase();
+
+      if(u.photo){
+        avatarPhoto.src = u.photo;
+        avatarPhoto.style.display = "block";
+        avatarChar.style.display = "none";
+
+        // якщо картинка не завантажилась — повернемо літеру
+        avatarPhoto.onerror = () => {
+          avatarPhoto.style.display = "none";
+          avatarChar.style.display = "flex";
+          showToast("Фото не відкривається по URL. Потрібен прямий лінк на картинку.");
         };
-    }
+      } else {
+        avatarPhoto.style.display = "none";
+        avatarChar.style.display = "flex";
+      }
 
-    async function pushToFirebase(data) { try { await addDoc(collection(db, "messages"), { ...data, sender: myEmail, participants: [myEmail, partnerEmail], createdAt: serverTimestamp() }); } catch (e) { document.getElementById('loader').style.display = 'none'; alert("Помилка: " + e.message); } }
-
-    window.runAISimulation = (type) => {
-        document.getElementById('loader').style.display = 'block'; document.getElementById('loader-txt').innerText = "AI Аналізує...";
-        setTimeout(() => {
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('ai-result-modal').style.display = 'flex';
-            const text = document.getElementById('ai-text');
-            if(type === 'chat') text.innerHTML = "<b>Аналіз діалогу:</b><br><br>Діалог розвивається повільно. Вона відповідає, але не ініціює.<br><br>💡 <b>Порада:</b> Спробуй розсмішити її. Напиши: 'Я тільки що бачив кота, який схожий на тебе...'";
-            else text.innerHTML = "<b>Аналіз профілю:</b><br><br>Вона явно інтроверт, цінує книги та затишок.<br><br>💡 <b>Як підійти:</b> Запитай про останню книгу, яку вона прочитала.";
-        }, 1500);
+    } catch(e){
+      console.error(e);
+      showToast("Не вдалося завантажити профіль партнера з Firestore.");
+      titleEl.textContent = "User " + partnerId;
+      avatarChar.textContent = String(partnerId)[0]?.toUpperCase() || "?";
     }
-    window.viewImage = (src) => { document.getElementById('viewer-img').src = src; document.getElementById('img-viewer').style.display = 'flex'; };
+  }
+
+  // -------- Chat (history + send) ----------
+  function initChat(){
+    // читаємо останні 100 повідомлень, де є мій email, і фільтруємо по partnerEmail
+    const q = query(
+      collection(db, "messages"),
+      where("participants", "array-contains", myEmail),
+      orderBy("createdAt", "asc"),
+      limit(100)
+    );
+
+    onSnapshot(q, (snapshot) => {
+      msgs.innerHTML = "";
+      snapshot.forEach((d) => {
+        const m = d.data() || {};
+        if(Array.isArray(m.participants) && m.participants.includes(partnerEmail)){
+          renderMsg(m);
+        }
+      });
+      setTimeout(()=>{ msgs.scrollTop = msgs.scrollHeight; }, 50);
+    }, (err) => {
+      console.error(err);
+      alert("Помилка читання історії (Firestore rules/доступ): " + err.message);
+    });
+
+    sendBtn.onclick = sendMessage;
+    input.onkeypress = (e) => { if(e.key === "Enter") sendMessage(); };
+  }
+
+  function renderMsg(m){
+    const row = document.createElement("div");
+    row.className = "row " + (m.sender === myEmail ? "mine" : "theirs");
+
+    const time = m.createdAt ? new Date(m.createdAt.toDate()).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : "";
+    row.innerHTML = `<div class="bubble">${esc(m.text||"")}<span class="t">${time}</span></div>`;
+    msgs.appendChild(row);
+  }
+
+  async function sendMessage(){
+    const text = (input.value || "").trim();
+    if(!text) return;
+
+    input.value = "";
+
+    try{
+      await addDoc(collection(db, "messages"), {
+        text,
+        sender: myEmail,
+        participants: [myEmail, partnerEmail], // ✅ симетрично для двох
+        createdAt: serverTimestamp()
+      });
+    } catch(e){
+      console.error(e);
+      alert("Не вдалося відправити (Firestore rules/доступ): " + e.message);
+    }
+  }
+
+  // -------- Login overlay actions ----------
+  loginBtn.onclick = () => {
+    const v = (loginEmail.value || "").trim().toLowerCase();
+    if(!v || !v.includes("@")){
+      showToast("Введи коректний email");
+      return;
+    }
+    myEmail = v;
+    localStorage.setItem("qura_me_email", myEmail);
+    loginOverlay.style.display = "none";
+    showToast("Готово. Ти увійшов як: " + myEmail);
+    initChat();
+  };
+
+  document.getElementById("resetMe").onclick = () => {
+    localStorage.removeItem("qura_me_email");
+    myEmail = "";
+    showToast("Збережений email стерто");
+  };
+
+  document.getElementById("whoBtn").onclick = () => {
+    alert("Ти зараз як: " + (myEmail || "(не задано)"));
+  };
+
+  // -------- Start ----------
+  requirePartnerParams();
+  await loadPartner();
+
+  if(ensureMyEmail()){
+    initChat();
+  }
 </script>
 </body>
 </html>
