@@ -2,14 +2,15 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import {
     getFirestore,
-    doc,
-    getDoc,
     collection,
     addDoc,
     query,
+    where,
     orderBy,
     onSnapshot,
-    serverTimestamp
+    serverTimestamp,
+    getDocs,
+    limit
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
   import {
@@ -18,91 +19,160 @@
     onAuthStateChanged
   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  // 🔥 ТВОЯ CONFIG (залиш як є)
+  const SOFTR_PROFILE_URL = "https://quradating.softr.app/user-profile";
+
+  // ✅ твій Firebase config (НЕ міняй)
   const firebaseConfig = {
-    apiKey: "PASTE_HERE",
-    authDomain: "PASTE_HERE",
-    projectId: "PASTE_HERE",
-    storageBucket: "PASTE_HERE",
-    messagingSenderId: "PASTE_HERE",
-    appId: "PASTE_HERE"
+    apiKey: "AIzaSyBQNxVaRBgyiM0oJJjzDJ5MJi1WBVPlsdI",
+    authDomain: "quradating777.firebaseapp.com",
+    projectId: "quradating777",
+    storageBucket: "quradating777.firebasestorage.app",
+    messagingSenderId: "723638199684",
+    appId: "1:723638199684:web:b00ea1895fd5b7ee63e9d1"
   };
 
-  // Init
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // URL partnerId
+  // --- URL params ---
   const params = new URLSearchParams(window.location.search);
-  const partnerId = params.get("partnerId");
 
-  // Elements
-  const headerName = document.getElementById("chat-name");
-  const headerPhoto = document.getElementById("chat-photo");
-  const messagesBox = document.getElementById("messages");
-  const input = document.getElementById("messageInput");
-  const sendBtn = document.getElementById("sendBtn");
+  // partner
+  const partnerId = params.get("partnerId") || ""; // для переходу "переглянути профіль"
+  const partnerEmail = (params.get("partnerEmail") || "").trim().toLowerCase();
 
-  // 🔑 Авторизація (тихо)
+  // me (беремо або з URL, або з localStorage)
+  const meFromUrl = (params.get("me") || "").trim().toLowerCase();
+  if (meFromUrl) localStorage.setItem("qura_me_email", meFromUrl);
+
+  const myEmail = (localStorage.getItem("qura_me_email") || "").trim().toLowerCase();
+
+  // --- UI elements (з твого HTML) ---
+  const chatTitle = document.getElementById("chat-title");
+  const avatarChar = document.getElementById("avatar-char");
+  const avatarPhoto = document.getElementById("avatar-photo");
+  const msgBox = document.getElementById("messages");
+
+  const input = document.getElementById("msg-input");
+  const sendBtn = document.getElementById("send-btn");
+
+  // 1) Якщо не знаємо "хто я" — просимо зробити крок A (відкрити чат із ?me=...)
+  if (!myEmail) {
+    chatTitle.textContent = "Відкрий чат зі свого профілю";
+    avatarChar.textContent = "?";
+    alert("Спочатку відкрий чат зі СВОГО профілю (посилання має містити ?me=твій_email). Потім кнопка 'Повідомлення' запрацює.");
+  }
+
+  // 2) Якщо не прийшов partnerEmail — теж стоп
+  if (!partnerEmail) {
+    chatTitle.textContent = "Немає partnerEmail";
+    avatarChar.textContent = "!";
+    alert("Кнопка 'Повідомлення' має відкривати URL з partnerEmail. Напр: ?partnerId=4&partnerEmail=resha@ukr.net");
+  }
+
+  // --- Навігація на профіль (як у тебе) ---
+  document.getElementById("profile-link").onclick = () => {
+    if (partnerId) window.location.href = `${SOFTR_PROFILE_URL}?recordId=${partnerId}`;
+  };
+
+  // --- Тиха авторизація для Firestore rules (без попапів) ---
   signInAnonymously(auth);
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
 
-    const myId = user.uid;
+    // --- Підтягуємо name/photo партнера з Firestore users (по email) ---
+    // users docs: { name, photo, email }
+    try {
+      const uq = query(
+        collection(db, "users"),
+        where("email", "==", partnerEmail),
+        limit(1)
+      );
+      const us = await getDocs(uq);
 
-    // 🔥 Показати partner info
-    const userRef = doc(db, "users", partnerId);
-    const snap = await getDoc(userRef);
+      if (!us.empty) {
+        const partner = us.docs[0].data();
+        const name = (partner.name || partnerEmail || "User").toString();
 
-    if (snap.exists()) {
-      const data = snap.data();
-      headerName.textContent = data.name || partnerId;
-      headerPhoto.src = data.photo || "";
+        chatTitle.textContent = name;
+
+        const firstChar = name.trim().charAt(0).toUpperCase() || "U";
+        avatarChar.textContent = firstChar;
+
+        const photo = (partner.photo || "").toString().trim();
+        if (photo) {
+          avatarPhoto.src = photo;
+          avatarPhoto.style.display = "block";
+          avatarChar.style.display = "none";
+        } else {
+          avatarPhoto.style.display = "none";
+          avatarChar.style.display = "flex";
+        }
+      } else {
+        // якщо не знайшли в users — показуємо email як fallback
+        chatTitle.textContent = partnerEmail || "User";
+        avatarChar.textContent = (partnerEmail || "U").charAt(0).toUpperCase();
+        avatarPhoto.style.display = "none";
+        avatarChar.style.display = "flex";
+      }
+    } catch (e) {
+      console.error("users lookup error:", e);
     }
 
-    // 📌 Chat ID (унікально для двох людей)
-    const chatId = [myId, partnerId].sort().join("_");
+    // --- ChatID: стабільний на базі двох email (історія чату працює) ---
+    if (!myEmail || !partnerEmail) return;
 
-    // 📩 Слухаємо історію
+    const chatId = [myEmail, partnerEmail].sort().join("__");
     const msgsRef = collection(db, "chats", chatId, "messages");
+    const q = query(msgsRef, orderBy("createdAt", "asc"));
 
-    const q = query(msgsRef, orderBy("createdAt"));
-
+    // --- Render messages ---
     onSnapshot(q, (snapshot) => {
-      messagesBox.innerHTML = "";
-
-      snapshot.forEach((doc) => {
-        const msg = doc.data();
-
-        const div = document.createElement("div");
-        div.textContent = msg.text;
-        div.style.padding = "8px";
-        div.style.margin = "6px";
-        div.style.borderRadius = "10px";
-
-        div.style.background =
-          msg.sender === myId ? "#4f46e5" : "#222";
-
-        messagesBox.appendChild(div);
-      });
-
-      messagesBox.scrollTop = messagesBox.scrollHeight;
+      msgBox.innerHTML = "";
+      snapshot.forEach((d) => renderMessage(d.data()));
+      setTimeout(() => (msgBox.scrollTop = msgBox.scrollHeight), 50);
     });
 
-    // ✉️ Надсилання
+    // --- Send ---
     sendBtn.onclick = async () => {
       const text = input.value.trim();
       if (!text) return;
 
+      input.value = "";
       await addDoc(msgsRef, {
-        text: text,
-        sender: myId,
+        text,
+        senderEmail: myEmail,
         createdAt: serverTimestamp()
       });
+    };
 
-      input.value = "";
+    input.onkeypress = (e) => {
+      if (e.key === "Enter") sendBtn.click();
     };
   });
+
+  function renderMessage(data) {
+    const row = document.createElement("div");
+    row.className = `msg-row ${data.senderEmail === (localStorage.getItem("qura_me_email") || "").trim().toLowerCase() ? "mine" : "theirs"}`;
+
+    const time = data.createdAt?.toDate
+      ? new Date(data.createdAt.toDate()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "";
+
+    row.innerHTML = `
+      <div class="msg">
+        ${escapeHtml(data.text || "")}
+        <span style="display:block; font-size:10px; opacity:0.7; text-align:right; margin-top:5px;">${time}</span>
+      </div>`;
+    msgBox.appendChild(row);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
 </script>
